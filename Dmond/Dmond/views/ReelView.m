@@ -28,8 +28,8 @@
 
 - (void)spinNow:(NSTimeInterval) delay {
     __weak typeof(self) weakSelf = self;
-    [UIView animateWithDuration:3 delay:delay options:UIViewAnimationOptionCurveEaseInOut animations:^{
-        weakSelf.stackOneOffset.constant = -120*7;
+    [UIView animateWithDuration:1.0 delay:delay options:UIViewAnimationOptionCurveEaseIn animations:^{
+        weakSelf.stackOneOffset.constant = -120*6;
         [weakSelf layoutIfNeeded];
     } completion:^(BOOL finished) {
         weakSelf.stackOneOffset.constant = 0;
@@ -39,8 +39,8 @@
 
 - (void)spinMore {
     __weak typeof(self) weakSelf = self;
-    [UIView animateWithDuration:3 delay:0 options:UIViewAnimationOptionCurveLinear animations:^{
-        weakSelf.stackOneOffset.constant = -120*7;
+    [UIView animateWithDuration:0.3 delay:0 options:UIViewAnimationOptionCurveLinear animations:^{
+        weakSelf.stackOneOffset.constant = -120*6;
         [weakSelf layoutIfNeeded];
     } completion:^(BOOL finished) {
         weakSelf.stackOneOffset.constant = 0;
@@ -94,8 +94,7 @@
                                                      multiplier:1
                                                        constant:120]];
     
-    NSArray <NSString *>*imageNames = @[@"slot-seven",
-                                        @"slot-bell",
+    NSArray <NSString *>*imageNames = @[@"slot-bell",
                             @"slot-diamond",
                             @"slot-cherries",
                             @"slot-lemon",
