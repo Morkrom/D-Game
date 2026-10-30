@@ -12,8 +12,8 @@ NS_ASSUME_NONNULL_BEGIN
  
 @interface GameViewModel : NSObject
 
-@property (strong, nonatomic, readonly) NSNumber *userCredits;
-@property (strong, nonatomic, readonly) NSNumber *bettingAmount;
+@property (strong, nonatomic) NSNumber *userCredits;
+@property (strong, nonatomic) NSNumber *bettingAmount;
 
 - (void)bettingCreditsAmount:(NSNumber *)creditsAmount;
 - (void)observeDisplayChange:(void(^)(void))doUpdate;
@@ -22,6 +22,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (NSArray <NSNumber *>*) generateReelResults;
 - (void)logReelResults: (NSArray <NSNumber *> *)reelsResults;
+- (void)refreshForDisplay;
+- (void)deductCreditsForReelRoll;
 
 @end
 

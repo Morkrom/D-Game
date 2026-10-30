@@ -14,6 +14,7 @@
 @property (strong, nonatomic) UIStackView *stackTwo;
 @property (strong, nonatomic) NSLayoutConstraint *stackOneOffset;
 @property (strong, nonatomic) NSLayoutConstraint *stackTwoOffset;
+@property (assign, nonatomic) NSTimeInterval randomSpinDuration;
 
 @end
 
@@ -30,20 +31,23 @@
         weakSelf.stackOneOffset.constant = 0;
         weakSelf.stackTwoOffset.constant = 0;
         [weakSelf layoutIfNeeded];
-        [UIView animateWithDuration:0.5 animations:^{}];
+        [UIView animateWithDuration:0.5 animations:^{
+            weakSelf.stackOne.alpha = 1;
+            weakSelf.stackTwo.alpha = 1;
+        }];
     }];
 }
 
 - (void)spinNowtoIndex:(NSUInteger)index completion:(void(^)(void))completion {
+    _randomSpinDuration = (((100.0 - (arc4random_uniform(10))))/100)*1.0;
     
-    NSUInteger numberOfSpins = arc4random_uniform(10) + 5;
+    NSUInteger numberOfSpins = arc4random_uniform(5) + 5;
     
     __weak typeof(self) weakSelf = self;
     
-//    self.stackTwo.hidden = YES;
-//    self.stackOne.hidden = NO;
-    
-    [UIView animateWithDuration:1.0 delay:0 options:UIViewAnimationOptionCurveEaseIn animations:^{
+    weakSelf.stackTwo.hidden = YES;
+
+    [UIView animateWithDuration:0.33 delay:0 options:UIViewAnimationOptionCurveEaseIn animations:^{
         weakSelf.stackOneOffset.constant = -120*6;
         [weakSelf layoutIfNeeded];
     } completion:^(BOOL finished) {
@@ -61,22 +65,41 @@
 
 - (void)spinMoreIsTop:(BOOL)isTop toIndex:(NSUInteger) index numberOfSpins:(NSUInteger)spins completion:(void(^)(void))completionBlock {
     __weak typeof(self) weakSelf = self;
+    CGFloat constantTo;
+    
+    if (spins == 0) {
+        if (index == 0) {
+            constantTo = -120.0*6.0;
+        } else {
+            constantTo = -120.0*(index-1);
+        }
+    } else {
+        constantTo = -120*7.0;
+    }
 
-    CGFloat constantTo = spins == 0 ? -120*index : -120*6;
-    
-    NSLayoutConstraint *determinedStack = isTop ? self.stackOneOffset : self.stackTwoOffset;
-    
-    [UIView animateWithDuration:1.0 delay:0 options:UIViewAnimationOptionCurveLinear animations:^{
-        determinedStack.constant = constantTo;
+    [UIView animateWithDuration:_randomSpinDuration delay:0 options:UIViewAnimationOptionCurveLinear animations:^{
+        if (isTop) {
+            weakSelf.stackOneOffset.constant = constantTo;
+        } else {
+            weakSelf.stackTwoOffset.constant = constantTo;
+        }
+        
         [weakSelf layoutIfNeeded];
     } completion:^(BOOL finished) {
+
         if (spins > 0) {
-            weakSelf.stackOne.hidden = isTop;
+            
             weakSelf.stackTwo.hidden = !isTop;
-            determinedStack.constant = 0;
+            weakSelf.stackOne.hidden = isTop;
+            weakSelf.stackOneOffset.constant = 0;
+            weakSelf.stackTwoOffset.constant = 0;
+            
             [weakSelf spinMoreIsTop:!isTop toIndex:index numberOfSpins:spins-1 completion:completionBlock];
             return;
         }
+//        weakSelf.stackTwo.hidden = !weakSelf.stackTwo.hidden;
+//        weakSelf.stackOne.hidden = !weakSelf.stackOne.hidden;
+
         completionBlock();
     }];
 }
@@ -85,12 +108,13 @@
     self = [super initWithFrame:CGRectZero];
     self.translatesAutoresizingMaskIntoConstraints = false;
     [self configureDimension];
-    self.backgroundColor = [UIColor blueColor];
+
     return self;
 }
 
 - (UIView *)slotImageView:(NSString *) image {
     UIImageView *imageView = [UIImageView new];
+
     imageView.translatesAutoresizingMaskIntoConstraints = false;
     imageView.image = [UIImage imageNamed:image];
     [imageView addConstraint:[NSLayoutConstraint
@@ -138,33 +162,33 @@
     topScrollStack.translatesAutoresizingMaskIntoConstraints = false;
     topScrollStack.axis = UILayoutConstraintAxisVertical;
     
-    [imageNames enumerateObjectsUsingBlock:^(NSString * _Nonnull imageName, NSUInteger idx, BOOL * _Nonnull stop) {
-        [topScrollStack addArrangedSubview:[self slotImageView:imageName]];
-    }];
-    
-    [self addSubview:topScrollStack];
-    
-    NSLayoutConstraint *constraintTop = [topScrollStack.topAnchor constraintEqualToAnchor:self.topAnchor];
-    NSLayoutConstraint *centerX = [topScrollStack.centerXAnchor constraintEqualToAnchor:self.centerXAnchor];
-    
-    self.stackOne = topScrollStack;
-    self.stackOneOffset = constraintTop;
-    
     UIStackView *bottomScrollStack = [UIStackView new];
     bottomScrollStack.translatesAutoresizingMaskIntoConstraints = false;
     bottomScrollStack.axis = UILayoutConstraintAxisVertical;
+    
+    [imageNames enumerateObjectsUsingBlock:^(NSString * _Nonnull imageName, NSUInteger idx, BOOL * _Nonnull stop) {
+        [topScrollStack addArrangedSubview:[self slotImageView:imageName]];
+    }];
     
     [imageNames enumerateObjectsUsingBlock:^(NSString * _Nonnull imageName, NSUInteger idx, BOOL * _Nonnull stop) {
         [bottomScrollStack addArrangedSubview:[self slotImageView:imageName]];
     }];
     
     [self addSubview:bottomScrollStack];
+    [self addSubview:topScrollStack];
+
+    
+    NSLayoutConstraint *constraintTop = [topScrollStack.topAnchor constraintEqualToAnchor:self.topAnchor];
+    NSLayoutConstraint *centerX = [topScrollStack.centerXAnchor constraintEqualToAnchor:self.centerXAnchor];
     
     NSLayoutConstraint *constraintBottomStackTop = [bottomScrollStack.topAnchor constraintEqualToAnchor:self.topAnchor];
     NSLayoutConstraint *bottomStackCenterX = [bottomScrollStack.centerXAnchor constraintEqualToAnchor:self.centerXAnchor];
     
     [NSLayoutConstraint activateConstraints:@[constraintBottomStackTop, bottomStackCenterX, constraintTop, centerX]];
-    self.stackTwo = topScrollStack;
+    
+    self.stackOne = topScrollStack;
+    self.stackOneOffset = constraintTop;
+    self.stackTwo = bottomScrollStack;
     self.stackTwoOffset = constraintBottomStackTop;
     
     self.clipsToBounds = true;
