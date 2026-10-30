@@ -6,9 +6,9 @@
 //
 
 #import <UIKit/UIKit.h>
+@class GameViewModel;
 
 @interface ViewController : UIViewController
-
 
 @end
 

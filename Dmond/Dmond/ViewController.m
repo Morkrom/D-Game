@@ -6,170 +6,67 @@
 //
 
 #import "ViewController.h"
-
-
-/*
-
- ### Core Features (Required - 90 minutes)
-
- #### 1. Basic Slot Machine Interface
- - **3 spinning reels** displayed horizontally
- - **Play button** to start the game
- - **Credits balance display** showing current credits (start with 100 credits)
- - **Bet amount selector** (1, 5, 10 credits per spin)
- - Clean, intuitive UI optimized for **iPad landscape orientation**
- - An example of a slot game layout has been provided as a reference as well as symbol assets and a background.  Using these are optional.
-
- #### 2. Game Mechanics
- - **Symbol Set**: Use the provided PNG symbols (or create your own)
-   - Included: Cherry, Lemon, Seven, Bell, Star, Diamond
-   - All symbols provided in @1x, @2x, and @3x resolutions
- - **Spinning Animation**: Reels should visually "spin" before stopping
- - **Win Detection**:
-   - 3 matching symbols = win
-   - Different symbols have different payout multipliers
- - **Balance Management**:
-   - Deduct bet amount on spin
-   - Add winnings to balance
-   - Prevent spinning when balance < bet amount
-
- #### 3. Win Logic & Payouts
- Implement a payout table (example):
- - Cherry-Cherry-Cherry = 2x bet
- - Lemon-Lemon-Lemon = 3x bet
- - Seven-Seven-Seven = 5x bet
- - Bell-Bell-Bell = 10x bet
- - Star-Star-Star = 15x bet
- - Diamond-Diamond-Diamond = 25x bet
-
- ### Bonus Features (Optional - 30 minutes)
- Choose one or more if time permits:
- - **Sound effects** for spinning and winning
- - **Win animations** (flash, pulse, etc.)
- - **Statistics tracking** (total spins, biggest win, etc.)
- - **Auto-spin** functionality
- - **Jackpot feature** (rare 3x same symbol combination)
- - **Better visual design** with custom graphics
-
- ## Technical Requirements
-
- ### Code Quality
- - Use appropriate design patterns (MVC, MVVM, etc.)
- - Implement proper separation of concerns
- - Write clean, readable code with meaningful variable names
- - Add comments for complex logic
- - Handle edge cases (insufficient balance, etc.)
-
- ### Architecture Suggestions
- Consider organizing your code with:
- ```
- Models/
- ├── SlotMachine.swift
- ├── GameEngine.swift
- └── Symbol.swift
-
- Views/
- ├── SlotReelView.swift
- ├── GameViewController.swift
- └── (Custom UI components)
-
- Controllers/
- └── GameViewController.swift (if using MVC)
- ```
-
- ## Evaluation Criteria
-
- ### Technical Skills (60%)
- - **Code Organization** (20%): Clean architecture, proper separation of concerns
- - **Game Logic Implementation** (20%): Correct win detection, balance management
- - **UI Implementation** (20%): Functional interface, smooth animations
-
- ### Problem Solving (30%)
- - **Edge Case Handling**: What happens when balance is insufficient?
- - **User Experience**: Is the game intuitive and enjoyable?
- - **Code Efficiency**: Appropriate algorithms and data structures
-
- ### Bonus Points (10%)
- - **Polish & Creativity**: Visual appeal, sound, additional features
- - **Documentation**: Clear README, code comments
- - **Git Usage**: Meaningful commit history
-
- ## Submission Requirements
-
- ### What to Submit
- 1. **Complete Xcode project** (zipped or GitHub repository link)
- 2. **README.md** with:
-    - Brief description of your approach
-    - Features implemented
-    - Any assumptions made
-    - Instructions to run the project
-    - What you would improve with more time
-
- ### Time Expectations
- - **Total Time**: 2 hours maximum
- - **Core Features**: Should be completed within 90 minutes
- - **Polish/Bonus**: Remaining 30 minutes
-
- ### Submission Checklist
- - [ ] Project builds and runs without errors
- - [ ] All core features are implemented and functional
- - [ ] Code is clean and well-organized
- - [ ] Git repository with commit history
- - [ ] README.md explaining your implementation
-
- ## Starter Assets (Optional)
-
- We've provided basic visual assets in the `/Assets` folder to help you get started:
- - **Background template** with reel areas positioned
- - **Reel frames** for professional appearance
- - **Custom PNG symbols** (Cherry, Lemon, Seven, Bell, Star, Diamond)
- - **Symbol specifications** with payout suggestions and implementation examples
- - **Spin button** design template
- - **Color palette** and styling guidelines
-
- **Note**: These assets are completely optional. You can use them, modify them, or create your own designs. Focus on functionality over visual perfection.
-
- ## Getting Started Tips
-
- 1. **Start Simple**: Get basic UI working first, then add game logic
- 2. **Incremental Development**: Make it work, then make it better
- 3. **Test Frequently**: Run your app after each major feature
- 4. **Time Management**: Spend 90 minutes on core features, 30 on polish
- 5. **Focus on Functionality**: A working simple game is better than a broken complex one
- 6. **Optional Assets**: Check the `/Assets` folder for starter graphics and color schemes
-
- ## Questions?
- If you have any clarifying questions about the requirements, please don't hesitate to ask. Good luck, and have fun building your slot machine!
-
- ---
-
- **Expected Deliverable**: A functional iOS slot machine game that demonstrates your iOS development skills, problem-solving ability, and attention to user experience.
- */
-
 #import "ReelView.h"
+#import "GameViewModel.h"
+#import "WinnerView.h"
 
 @interface ViewController ()
 
 
-@property NSArray <ReelView *> *reels;
-@property UIButton *playButton;
+@property (strong, nonatomic) NSArray <ReelView *> *reels;
+@property (strong, nonatomic) UIButton *playButton;
+@property (strong, nonatomic) UILabel *creditsLabel;
+@property (strong, nonatomic) GameViewModel *viewModel;
+@property (strong, nonatomic) UISegmentedControl *segmentControl;
+@property (strong, nonatomic) WinnerView *winnerView;
 
 @end
 
 @implementation ViewController
 
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+    self = [super initWithCoder:coder];
+    if (self) {
+        //TODO: Because this viewcontroller is instantiated from a xib the viewmodel is created here, however it would be best if there was a single source for all dependencies for instance a dependency manager in the application delegate. For this example it is suffice that this viewcontroller is the application root.
+        self.viewModel = [GameViewModel new];
+    }
+    return self;
+}
+
 - (void)viewDidLoad {
+    [super viewDidLoad];
     
-    self.view.translatesAutoresizingMaskIntoConstraints = false;
+    __weak typeof(self) weakSelf = self;
+    
+    NSArray *creditsSelection = @[[UIAction actionWithTitle:@"Bet 1 credit"
+                                                      image:nil
+                                                 identifier:nil
+                                                    handler:^(__kindof UIAction * _Nonnull action) {
+        [weakSelf.viewModel bettingCreditsAmount: @(1)];
+    }],
+                                  [UIAction actionWithTitle:@"Bet 5 credits"
+                                                      image:nil
+                                                 identifier:nil
+                                                    handler:^(__kindof UIAction * _Nonnull action) {
+                                      [weakSelf.viewModel bettingCreditsAmount: @(5)];
+      }],
+                                  [UIAction actionWithTitle:@"Bet 10 credits"
+                                                      image:nil
+                                                 identifier:nil
+                                                    handler:^(__kindof UIAction * _Nonnull action) {
+                                      [weakSelf.viewModel bettingCreditsAmount: @(10)];
+      }]];
+    
+    self.segmentControl = [[UISegmentedControl alloc] initWithFrame:CGRectZero actions:creditsSelection];
+    self.segmentControl.translatesAutoresizingMaskIntoConstraints = NO;
+    self.view.translatesAutoresizingMaskIntoConstraints = NO;
     self.reels = @[[ReelView new],
                    [ReelView new],
                    [ReelView new]];
     self.playButton = [UIButton buttonWithType: UIButtonTypeCustom];
-    self.playButton.translatesAutoresizingMaskIntoConstraints = false;
-    
-    [super viewDidLoad];
-    
-    self.view.backgroundColor = [UIColor lightGrayColor];
+    self.playButton.translatesAutoresizingMaskIntoConstraints = NO;
+    self.creditsLabel = [UILabel new];
     
     // Do any additional setup after loading the view.
     
@@ -179,26 +76,82 @@
     
     [self.view addSubview:stackView];
     [self.view addSubview: self.playButton];
+    [self.view addSubview:self.creditsLabel];
+    [self.view addSubview:self.winnerView];
+
+    [[self.winnerView.topAnchor constraintEqualToAnchor:self.view.topAnchor] setActive: YES];
+    [[self.winnerView.rightAnchor constraintEqualToAnchor:self.view.rightAnchor] setActive: YES];
+    [[self.winnerView.leftAnchor constraintEqualToAnchor:self.view.leftAnchor] setActive: YES];
+    [[self.winnerView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor] setActive: YES];
+
+    self.creditsLabel.text = @"Credits: ";
     
     [self.playButton setImage:[UIImage imageNamed: @"play"] forState:UIControlStateNormal];
     [self.playButton addTarget:self action:@selector(playAction:) forControlEvents:UIControlEventTouchUpInside];
-   
-    [[self.playButton.widthAnchor constraintEqualToConstant:65] setActive:YES];
-    [[self.playButton.heightAnchor constraintEqualToConstant:40] setActive:YES];
 
-    [self.view addConstraint:[NSLayoutConstraint constraintWithItem:self.playButton attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeBottom multiplier:1 constant:-20]];
-    [self.view addConstraint:[NSLayoutConstraint constraintWithItem:self.playButton attribute:NSLayoutAttributeCenterX relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeCenterX multiplier:1 constant:0]];
+    [[self.playButton.heightAnchor constraintEqualToConstant:150/1.8] setActive:YES];
+    [[self.playButton.widthAnchor constraintEqualToConstant:150] setActive:YES];
+    [[self.playButton.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-50] setActive: YES];
+    [[self.playButton.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor] setActive: YES];
+    
+    [[self.creditsLabel.topAnchor constraintEqualToAnchor:self.view.topAnchor constant:50] setActive:YES];
     
     [self.view addConstraint:[NSLayoutConstraint constraintWithItem:stackView attribute:NSLayoutAttributeCenterX relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeCenterX multiplier:1 constant:0]];
     [self.view addConstraint:[NSLayoutConstraint constraintWithItem:stackView attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeCenterY multiplier:1 constant:0]];
+    
+    [self bindViewModel];
+}
 
+-(void)bindViewModel {
+    __weak typeof(self) weakSelf = self;
+    [self.viewModel observeDisplayChange:^{
+        NSString *creditsLabelText = [weakSelf.viewModel needsCredits] ? [NSString stringWithFormat: @"Credits: %@", weakSelf.viewModel.userCredits] : @"Need more credits!";
+        weakSelf.creditsLabel.text = creditsLabelText;
+        weakSelf.playButton.enabled = ![weakSelf.viewModel needsCredits];
+    }];
+    
+    [self.viewModel observeForShowWinningScreen:^{
+        [weakSelf.winnerView spinWinner];
+        
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(8 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [weakSelf.winnerView stopWinner];
+        });
+
+    }];
+}
+
+-(void)resetReels {
+    
+    
+    [self.reels enumerateObjectsUsingBlock:^(ReelView * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        [obj resetDisplay];
+    }];
+    
 }
 
 -(void)playAction:(id)sender {
-    
+   
+    NSArray<NSNumber *> *reelResults = [self.viewModel generateReelResults];
+    dispatch_group_t dispatchGroup = dispatch_group_create();
+
     [self.reels enumerateObjectsUsingBlock:^(ReelView * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-        [obj spinNow:idx*0.3];
+
+        dispatch_group_enter(dispatchGroup);
+
+        [obj spinNowtoIndex:reelResults[idx].unsignedIntValue completion:^{
+                //
+            
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                dispatch_group_leave(dispatchGroup);
+            });
+        }];
     }];
+    
+    __weak typeof(self) weakSelf = self;
+    dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
+        [weakSelf.viewModel logReelResults:reelResults];
+        [weakSelf resetReels];
+    });
 }
 
 @end

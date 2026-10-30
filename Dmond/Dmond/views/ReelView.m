@@ -9,43 +9,75 @@
 
 @interface ReelView()
 
+// Ideally I would use a collection view to implement an infinite scroll.
 @property (strong, nonatomic) UIStackView *stackOne;
+@property (strong, nonatomic) UIStackView *stackTwo;
 @property (strong, nonatomic) NSLayoutConstraint *stackOneOffset;
 @property (strong, nonatomic) NSLayoutConstraint *stackTwoOffset;
-
-//maybe need we'll see
-//@property (strong, nonatomic) UIStackView *stackTwo;
 
 @end
 
 @implementation ReelView
 
-/*
- a pair of views with both lists of items:
- - You start one list, it scrolls to the end of the items,
- - On animation end, one list hides and resets scorll position and the next one begins.
-*/
-
-- (void)spinNow:(NSTimeInterval) delay {
+- (void)resetDisplay {
+    
     __weak typeof(self) weakSelf = self;
-    [UIView animateWithDuration:1.0 delay:delay options:UIViewAnimationOptionCurveEaseIn animations:^{
-        weakSelf.stackOneOffset.constant = -120*6;
-        [weakSelf layoutIfNeeded];
+
+    [UIView animateWithDuration:0.5 delay:0 options:UIViewAnimationOptionCurveEaseIn animations:^{
+        weakSelf.stackOne.alpha = 0;
+        weakSelf.stackTwo.alpha = 0;
     } completion:^(BOOL finished) {
         weakSelf.stackOneOffset.constant = 0;
-        [weakSelf spinMore];
+        weakSelf.stackTwoOffset.constant = 0;
+        [weakSelf layoutIfNeeded];
+        [UIView animateWithDuration:0.5 animations:^{}];
     }];
 }
 
-- (void)spinMore {
+- (void)spinNowtoIndex:(NSUInteger)index completion:(void(^)(void))completion {
+    
+    NSUInteger numberOfSpins = arc4random_uniform(10) + 5;
+    
     __weak typeof(self) weakSelf = self;
-    [UIView animateWithDuration:0.3 delay:0 options:UIViewAnimationOptionCurveLinear animations:^{
+    
+//    self.stackTwo.hidden = YES;
+//    self.stackOne.hidden = NO;
+    
+    [UIView animateWithDuration:1.0 delay:0 options:UIViewAnimationOptionCurveEaseIn animations:^{
         weakSelf.stackOneOffset.constant = -120*6;
         [weakSelf layoutIfNeeded];
     } completion:^(BOOL finished) {
+        
+        weakSelf.stackOne.hidden = YES;
+        weakSelf.stackTwo.hidden = NO;
         weakSelf.stackOneOffset.constant = 0;
+
+        [weakSelf spinMoreIsTop:NO
+                        toIndex: index
+                  numberOfSpins:numberOfSpins
+                     completion: completion];
+    }];
+}
+
+- (void)spinMoreIsTop:(BOOL)isTop toIndex:(NSUInteger) index numberOfSpins:(NSUInteger)spins completion:(void(^)(void))completionBlock {
+    __weak typeof(self) weakSelf = self;
+
+    CGFloat constantTo = spins == 0 ? -120*index : -120*6;
+    
+    NSLayoutConstraint *determinedStack = isTop ? self.stackOneOffset : self.stackTwoOffset;
+    
+    [UIView animateWithDuration:1.0 delay:0 options:UIViewAnimationOptionCurveLinear animations:^{
+        determinedStack.constant = constantTo;
         [weakSelf layoutIfNeeded];
-        [weakSelf spinMore];
+    } completion:^(BOOL finished) {
+        if (spins > 0) {
+            weakSelf.stackOne.hidden = isTop;
+            weakSelf.stackTwo.hidden = !isTop;
+            determinedStack.constant = 0;
+            [weakSelf spinMoreIsTop:!isTop toIndex:index numberOfSpins:spins-1 completion:completionBlock];
+            return;
+        }
+        completionBlock();
     }];
 }
 
@@ -115,9 +147,26 @@
     NSLayoutConstraint *constraintTop = [topScrollStack.topAnchor constraintEqualToAnchor:self.topAnchor];
     NSLayoutConstraint *centerX = [topScrollStack.centerXAnchor constraintEqualToAnchor:self.centerXAnchor];
     
-    [NSLayoutConstraint activateConstraints:@[constraintTop, centerX]];
     self.stackOne = topScrollStack;
     self.stackOneOffset = constraintTop;
+    
+    UIStackView *bottomScrollStack = [UIStackView new];
+    bottomScrollStack.translatesAutoresizingMaskIntoConstraints = false;
+    bottomScrollStack.axis = UILayoutConstraintAxisVertical;
+    
+    [imageNames enumerateObjectsUsingBlock:^(NSString * _Nonnull imageName, NSUInteger idx, BOOL * _Nonnull stop) {
+        [bottomScrollStack addArrangedSubview:[self slotImageView:imageName]];
+    }];
+    
+    [self addSubview:bottomScrollStack];
+    
+    NSLayoutConstraint *constraintBottomStackTop = [bottomScrollStack.topAnchor constraintEqualToAnchor:self.topAnchor];
+    NSLayoutConstraint *bottomStackCenterX = [bottomScrollStack.centerXAnchor constraintEqualToAnchor:self.centerXAnchor];
+    
+    [NSLayoutConstraint activateConstraints:@[constraintBottomStackTop, bottomStackCenterX, constraintTop, centerX]];
+    self.stackTwo = topScrollStack;
+    self.stackTwoOffset = constraintBottomStackTop;
+    
     self.clipsToBounds = true;
 }
 

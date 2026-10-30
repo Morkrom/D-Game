@@ -11,7 +11,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface ReelView : UIView
 
-- (void)spinNow:(NSTimeInterval) delay;
+- (void)spinNowtoIndex:(NSUInteger)index completion: (void(^)(void))completion;
+- (void)resetDisplay;
 
 @end
 

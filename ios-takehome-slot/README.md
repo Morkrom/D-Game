@@ -21,6 +21,7 @@ Create a simple iOS slot machine game from scratch in **2 hours**. Please do not
 - Clean, intuitive UI optimized for **iPad landscape orientation**
 - An example of a slot game layout has been provided as a reference as well as symbol assets and a background.  Using these are optional.
 
+
 #### 2. Game Mechanics
 - **Symbol Set**: Use the provided PNG symbols (or create your own)
   - Included: Cherry, Lemon, Seven, Bell, Star, Diamond
@@ -33,6 +34,7 @@ Create a simple iOS slot machine game from scratch in **2 hours**. Please do not
   - Deduct bet amount on spin
   - Add winnings to balance
   - Prevent spinning when balance < bet amount
+
 
 #### 3. Win Logic & Payouts
 Implement a payout table (example):
