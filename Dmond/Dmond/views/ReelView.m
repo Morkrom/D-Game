@@ -6,6 +6,7 @@
 //
 
 #import "ReelView.h"
+#import <AudioToolbox/AudioToolbox.h>
 
 @interface ReelView()
 
@@ -15,21 +16,46 @@
 @property (strong, nonatomic) NSLayoutConstraint *stackOneOffset;
 @property (strong, nonatomic) NSLayoutConstraint *stackTwoOffset;
 @property (assign, nonatomic) NSTimeInterval randomSpinDuration;
-
+@property (strong, nonatomic) NSArray <NSString *>*imageNames;
+@property (assign, nonatomic) CGFloat reelHeight;
+@property (assign, nonatomic) CGFloat totalHeight;
 @end
 
 @implementation ReelView
 
+// This is more of a component so if it had a model it would be more of a domain model according to data displayed, than a view model managing state.
+-(id)initWithFrame:(CGRect)frame {
+    
+    self = [super initWithFrame:CGRectZero];
+    self.translatesAutoresizingMaskIntoConstraints = false;
+    self.imageNames = @[@"slot-bell",
+                        @"slot-diamond",
+                        @"slot-cherries",
+                        @"slot-lemon",
+                        @"slot-star",
+                        @"slot-seven",
+                        @"slot-bell",
+                        @"slot-diamond",
+                        @"slot-cherries"];
+    
+    self.reelHeight = 120.0;
+    self.totalHeight = 240.0;
+    [self configureSubviews];
+
+    return self;
+}
+
 - (void)resetDisplay {
     
     __weak typeof(self) weakSelf = self;
-
+    CGFloat restingStacksOffset =  -self.reelHeight - [self centeredOffset];
+    
     [UIView animateWithDuration:0.5 delay:0 options:UIViewAnimationOptionCurveEaseIn animations:^{
         weakSelf.stackOne.alpha = 0;
         weakSelf.stackTwo.alpha = 0;
     } completion:^(BOOL finished) {
-        weakSelf.stackOneOffset.constant = 0;
-        weakSelf.stackTwoOffset.constant = 0;
+        weakSelf.stackOneOffset.constant = restingStacksOffset;
+        weakSelf.stackTwoOffset.constant = restingStacksOffset;
         [weakSelf layoutIfNeeded];
         [UIView animateWithDuration:0.5 animations:^{
             weakSelf.stackOne.alpha = 1;
@@ -46,16 +72,18 @@
     __weak typeof(self) weakSelf = self;
     
     weakSelf.stackTwo.hidden = YES;
+    weakSelf.stackOne.hidden = NO;
 
-    [UIView animateWithDuration:0.33 delay:0 options:UIViewAnimationOptionCurveEaseIn animations:^{
-        weakSelf.stackOneOffset.constant = -120*6;
+    NSUInteger imagesCount = self.imageNames.count;
+    
+    [UIView animateWithDuration:0.6 delay:0 options:UIViewAnimationOptionCurveEaseIn animations:^{
+        weakSelf.stackOneOffset.constant = -self.reelHeight*(imagesCount-2) - [self centeredOffset];
         [weakSelf layoutIfNeeded];
     } completion:^(BOOL finished) {
         
         weakSelf.stackOne.hidden = YES;
         weakSelf.stackTwo.hidden = NO;
         weakSelf.stackOneOffset.constant = 0;
-
         [weakSelf spinMoreIsTop:NO
                         toIndex: index
                   numberOfSpins:numberOfSpins
@@ -63,25 +91,41 @@
     }];
 }
 
-- (void)spinMoreIsTop:(BOOL)isTop toIndex:(NSUInteger) index numberOfSpins:(NSUInteger)spins completion:(void(^)(void))completionBlock {
-    __weak typeof(self) weakSelf = self;
+- (CGFloat)destinationOffsetForAnimatedReel:(NSUInteger)index
+                                      spins:(NSUInteger)spins {
     CGFloat constantTo;
-    
     if (spins == 0) {
-        if (index == 0) {
-            constantTo = -120.0*6.0;
-        } else {
-            constantTo = -120.0*(index-1);
+        if (index == 0) { // bell
+            constantTo = -self.reelHeight*(self.imageNames.count-4);
+        } else if (index == 1) { // diamond
+            constantTo = -self.reelHeight*(self.imageNames.count-3);
+        } else  {
+            constantTo = -self.reelHeight*(index-1);
         }
+        
     } else {
-        constantTo = -120*7.0;
+        constantTo = -self.reelHeight*(self.imageNames.count-2);
     }
+    
+    constantTo -= - [self centeredOffset];
+    return constantTo;
+}
 
+- (void)spinMoreIsTop:(BOOL)isTop
+              toIndex:(NSUInteger)index
+        numberOfSpins:(NSUInteger)spins
+           completion:(void(^)(void))completionBlock {
+    
+    CGFloat destinationOffset = [self destinationOffsetForAnimatedReel:index
+                                                                 spins: spins];
+
+    __weak typeof(self) weakSelf = self;
     [UIView animateWithDuration:_randomSpinDuration delay:0 options:UIViewAnimationOptionCurveLinear animations:^{
+       
         if (isTop) {
-            weakSelf.stackOneOffset.constant = constantTo;
+            weakSelf.stackOneOffset.constant = destinationOffset;
         } else {
-            weakSelf.stackTwoOffset.constant = constantTo;
+            weakSelf.stackTwoOffset.constant = destinationOffset;
         }
         
         [weakSelf layoutIfNeeded];
@@ -93,23 +137,19 @@
             weakSelf.stackOne.hidden = isTop;
             weakSelf.stackOneOffset.constant = 0;
             weakSelf.stackTwoOffset.constant = 0;
+        
+            [weakSelf setNeedsLayout];
             
-            [weakSelf spinMoreIsTop:!isTop toIndex:index numberOfSpins:spins-1 completion:completionBlock];
+            [weakSelf spinMoreIsTop:!isTop
+                            toIndex:index
+                      numberOfSpins:spins-1
+                         completion:completionBlock];
             return;
         }
-//        weakSelf.stackTwo.hidden = !weakSelf.stackTwo.hidden;
-//        weakSelf.stackOne.hidden = !weakSelf.stackOne.hidden;
-
+        
+        AudioServicesPlaySystemSound(1103);
         completionBlock();
     }];
-}
-
--(id)initWithFrame:(CGRect)frame {
-    self = [super initWithFrame:CGRectZero];
-    self.translatesAutoresizingMaskIntoConstraints = false;
-    [self configureDimension];
-
-    return self;
 }
 
 - (UIView *)slotImageView:(NSString *) image {
@@ -117,46 +157,29 @@
 
     imageView.translatesAutoresizingMaskIntoConstraints = false;
     imageView.image = [UIImage imageNamed:image];
+    imageView.contentMode = UIViewContentModeScaleAspectFit;
     [imageView addConstraint:[NSLayoutConstraint
                               constraintWithItem:imageView
                               attribute:NSLayoutAttributeHeight
                               relatedBy:NSLayoutRelationEqual
                               toItem:nil
                               attribute:NSLayoutAttributeHeight
-                              multiplier:1 constant:120]];
+                              multiplier:1 constant:self.reelHeight]];
     [imageView addConstraint:[NSLayoutConstraint
                               constraintWithItem:imageView
                               attribute:NSLayoutAttributeWidth
                               relatedBy:NSLayoutRelationEqual
                               toItem:nil
                               attribute:NSLayoutAttributeWidth
-                              multiplier:1 constant:120]];
+                              multiplier:1 constant:self.reelHeight]];
     return imageView;
 }
 
-- (void) configureDimension {
-    [self addConstraint: [NSLayoutConstraint constraintWithItem:self
-                                                      attribute:NSLayoutAttributeHeight
-                                                      relatedBy:NSLayoutRelationEqual
-                                                         toItem:nil
-                                                      attribute:NSLayoutAttributeHeight
-                                                     multiplier:1
-                                                       constant:120]];
-    [self addConstraint: [NSLayoutConstraint constraintWithItem:self
-                                                      attribute:NSLayoutAttributeWidth
-                                                      relatedBy:NSLayoutRelationEqual
-                                                         toItem:nil
-                                                      attribute:NSLayoutAttributeWidth
-                                                     multiplier:1
-                                                       constant:120]];
-    
-    NSArray <NSString *>*imageNames = @[@"slot-bell",
-                            @"slot-diamond",
-                            @"slot-cherries",
-                            @"slot-lemon",
-                            @"slot-star",
-                            @"slot-seven",
-                                        @"slot-bell"];
+- (CGFloat) centeredOffset {
+    return (self.totalHeight - self.reelHeight*3)/2;
+}
+
+- (void) configureSubviews {
     
     UIStackView *topScrollStack = [UIStackView new];
     topScrollStack.translatesAutoresizingMaskIntoConstraints = false;
@@ -165,32 +188,31 @@
     UIStackView *bottomScrollStack = [UIStackView new];
     bottomScrollStack.translatesAutoresizingMaskIntoConstraints = false;
     bottomScrollStack.axis = UILayoutConstraintAxisVertical;
-    
-    [imageNames enumerateObjectsUsingBlock:^(NSString * _Nonnull imageName, NSUInteger idx, BOOL * _Nonnull stop) {
+
+    [self.imageNames enumerateObjectsUsingBlock:^(NSString * _Nonnull imageName, NSUInteger idx, BOOL * _Nonnull stop) {
         [topScrollStack addArrangedSubview:[self slotImageView:imageName]];
-    }];
-    
-    [imageNames enumerateObjectsUsingBlock:^(NSString * _Nonnull imageName, NSUInteger idx, BOOL * _Nonnull stop) {
         [bottomScrollStack addArrangedSubview:[self slotImageView:imageName]];
     }];
     
     [self addSubview:bottomScrollStack];
     [self addSubview:topScrollStack];
+    
+    CGFloat centeredOffset = [self centeredOffset];
 
+    NSLayoutConstraint *constraintTop = [topScrollStack.topAnchor constraintEqualToAnchor:self.topAnchor constant: centeredOffset];
+    NSLayoutConstraint *constraintBottomStackTop = [bottomScrollStack.topAnchor constraintEqualToAnchor:self.topAnchor constant: centeredOffset];
     
-    NSLayoutConstraint *constraintTop = [topScrollStack.topAnchor constraintEqualToAnchor:self.topAnchor];
-    NSLayoutConstraint *centerX = [topScrollStack.centerXAnchor constraintEqualToAnchor:self.centerXAnchor];
-    
-    NSLayoutConstraint *constraintBottomStackTop = [bottomScrollStack.topAnchor constraintEqualToAnchor:self.topAnchor];
-    NSLayoutConstraint *bottomStackCenterX = [bottomScrollStack.centerXAnchor constraintEqualToAnchor:self.centerXAnchor];
-    
-    [NSLayoutConstraint activateConstraints:@[constraintBottomStackTop, bottomStackCenterX, constraintTop, centerX]];
+    [NSLayoutConstraint activateConstraints:@[constraintBottomStackTop,
+                                              constraintTop,
+                                              [topScrollStack.centerXAnchor constraintEqualToAnchor:self.centerXAnchor],
+                                              [bottomScrollStack.centerXAnchor constraintEqualToAnchor:self.centerXAnchor],
+                                              [self.heightAnchor constraintEqualToConstant:self.totalHeight],
+                                              [self.widthAnchor constraintEqualToConstant:self.reelHeight] ]];
     
     self.stackOne = topScrollStack;
     self.stackOneOffset = constraintTop;
     self.stackTwo = bottomScrollStack;
     self.stackTwoOffset = constraintBottomStackTop;
-    
     self.clipsToBounds = true;
 }
 

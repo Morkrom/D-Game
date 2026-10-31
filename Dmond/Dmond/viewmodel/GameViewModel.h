@@ -24,6 +24,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)logReelResults: (NSArray <NSNumber *> *)reelsResults;
 - (void)refreshForDisplay;
 - (void)deductCreditsForReelRoll;
+- (void)playStartGameSound;
 
 @end
 

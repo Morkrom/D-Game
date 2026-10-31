@@ -6,6 +6,7 @@
 //
 
 #import "GameViewModel.h"
+#import <AudioToolbox/AudioToolbox.h>
 
 @interface GameViewModel()
 
@@ -20,7 +21,6 @@ typedef NS_ENUM(NSUInteger, ReelSymbol) {
 
 @property (nonatomic, copy) void (^doUpdate) (void);
 @property (nonatomic, copy) void (^doShowWinnerScreen) (void);
-
 @end
 
 @implementation GameViewModel
@@ -62,9 +62,9 @@ typedef NS_ENUM(NSUInteger, ReelSymbol) {
 }
 
 - (NSArray <NSNumber *>*) generateReelResults {
-    return @[@(arc4random_uniform(6)),
-             @(arc4random_uniform(6)),
-             @(arc4random_uniform(6))];
+    return @[@(arc4random_uniform(5)),
+             @(arc4random_uniform(5)),
+             @(arc4random_uniform(5))];
 }
 
 - (void)refreshForDisplay {
@@ -86,7 +86,7 @@ typedef NS_ENUM(NSUInteger, ReelSymbol) {
             break;
         }
     }
-    
+
     if (isWinner) {
         self.doShowWinnerScreen();
         ReelSymbol symbol = firstItem.unsignedIntValue;
@@ -115,5 +115,11 @@ typedef NS_ENUM(NSUInteger, ReelSymbol) {
     }
     self.doUpdate();
 }
+
+- (void)playStartGameSound {
+    // Would use AVAudioManager for custom sound files.
+    AudioServicesPlaySystemSound(1023);
+}
+
 
 @end

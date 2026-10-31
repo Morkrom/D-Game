@@ -1,5 +1,5 @@
 //
-//  WinnerView.h
+//  YouWinnerView.h
 //  Dmond
 //
 //  Created by M on 10/30/26.
@@ -9,10 +9,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface WinnerView : UIView
-
-- (void)spinWinner;
-- (void)stopWinner;
+@interface YouWinnerView : UIView
+- (void)rewardUserGoodJob;
 @end
 
 NS_ASSUME_NONNULL_END
